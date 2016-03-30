@@ -1,11 +1,8 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+
 package org.cri.paris.java.sessionManager;
 
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.asyncsql.AsyncSQLClient;
 import io.vertx.ext.asyncsql.MySQLClient;
@@ -18,8 +15,14 @@ import java.util.logging.Logger;
  * @author arthur
  */
 public class SessionManager {
-
-    private final AsyncSQLClient mySQLClient;
+    
+    private static final String INSERT_SESSION_QUERY = "INSERT INTO session (googleplayerid, sessionid) VALUES (?, ?)";
+    private static final String CREATESESSION_TABLE_QUERY = "CREATE TABLE IF NOT EXISTS session ("
+                        + "ID int(20) unsigned NOT NULL auto_increment,"
+                        + "googleplayerid varchar(255) NOT NULL,"
+                        + "sessionid varchar(255) NOT NULL,"
+                        + "PRIMARY KEY  (ID, googleplayerid)"
+                        + ");";
 
     public static SessionManager getSessionManager(Vertx vertx,
             String host,
@@ -39,17 +42,19 @@ public class SessionManager {
         sessionManager.init();
         return sessionManager;
     }
+    
+    private final AsyncSQLClient mySQLClient;
 
     private SessionManager(AsyncSQLClient mySQLClient) {
         this.mySQLClient = mySQLClient;
     }
 
-    public void putSession(PlayerSession session, String googlePlayerID) {
+    public void putSession(String sessionID, String googlePlayerID) {
         this.mySQLClient.getConnection(res -> {
             if (res.succeeded()) {
                 SQLConnection connection = res.result();
-                connection.execute("INSERT INTO session (googleplayerid, sessionid) VALUES (" + googlePlayerID + ", " + session.getId() + ")", results -> {
-
+                connection.queryWithParams(INSERT_SESSION_QUERY, new JsonArray().add(sessionID).add(googlePlayerID), results -> {
+                    //Nothing to do
                 });
             } else {
                 Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, "Error : Enable to connect to the database {0}", res.cause());
@@ -61,16 +66,11 @@ public class SessionManager {
         this.mySQLClient.getConnection(res -> {
             if (res.succeeded()) {
                 SQLConnection connection = res.result();
-                connection.execute("CREATE TABLE IF NOT EXISTS session ("
-                        + "ID int(20) unsigned NOT NULL auto_increment,"
-                        + "googleplayerid varchar(255) NOT NULL,"
-                        + "sessionid varchar(255) NOT NULL,"
-                        + "PRIMARY KEY  (ID, googleplayerid)"
-                        + ")", results -> {
+                connection.execute(CREATESESSION_TABLE_QUERY, results -> {
 
                         });
             } else {
-                Logger.getLogger(this.getClass().getName()).severe("Error : Enable to connect to the database " + res.cause());
+                Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, "Error : Enable to connect to the database {0}", res.cause());
             }
         });
     }
