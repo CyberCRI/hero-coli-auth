@@ -5,7 +5,7 @@ import io.vertx.core.Vertx;
 
 /**
  * Main class used to launch the VertX server
- * @author TTAK
+ * @author TTAK arthur.besnard@cri-paris.org
  */
 public class Server {
 

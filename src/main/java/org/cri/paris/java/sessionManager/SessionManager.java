@@ -1,56 +1,57 @@
-
 package org.cri.paris.java.sessionManager;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.asyncsql.AsyncSQLClient;
-import io.vertx.ext.asyncsql.MySQLClient;
+import io.vertx.ext.asyncsql.PostgreSQLClient;
+import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.sql.SQLConnection;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  *
- * @author arthur
+ * @author TTAK arthur.besnard@cri-paris.org
  */
 public class SessionManager {
-    
-    private static final String INSERT_SESSION_QUERY = "INSERT INTO session (googleplayerid, sessionid) VALUES (?, ?)";
-    private static final String CREATESESSION_TABLE_QUERY = "CREATE TABLE IF NOT EXISTS session ("
-                        + "ID int(20) unsigned NOT NULL auto_increment,"
-                        + "googleplayerid varchar(255) NOT NULL,"
-                        + "sessionid varchar(255) NOT NULL,"
-                        + "PRIMARY KEY  (ID, googleplayerid)"
-                        + ");";
 
-    public static SessionManager getSessionManager(Vertx vertx,
+    private static final String INSERT_SESSION_QUERY = "UPDATE player SET sessions = array_cat(sessions, '{?}') WHERE pid = ?";
+    private static final String CREATESESSION_TABLE_QUERY = "CREATE TABLE IF NOT EXISTS player ("
+            + "pid varchar(32) NOT NULL PRIMARY KEY"
+            + "sessions varchar[],"
+            + ");";
+    private static final String GET_SESSION_TABLE_QUERY = "SELECT sessions FROM player where pid = ?";
+
+    static SessionManager getSessionManager(Vertx vertx,
             String host,
             String port,
             String maxPoolSize,
             String username,
             String password,
             String database) {
-        JsonObject mySQLClientConfig = new JsonObject();
-        mySQLClientConfig.put("host", host);
-        mySQLClientConfig.put("port", port);
-        mySQLClientConfig.put("maxPoolSize", maxPoolSize);
-        mySQLClientConfig.put("username", username);
-        mySQLClientConfig.put("password", password);
-        mySQLClientConfig.put("database", database);
-        SessionManager sessionManager = new SessionManager(MySQLClient.createNonShared(vertx, mySQLClientConfig));
+        JsonObject sqlClientConfig = new JsonObject();
+        sqlClientConfig.put("host", host);
+        sqlClientConfig.put("port", port);
+        sqlClientConfig.put("maxPoolSize", maxPoolSize);
+        sqlClientConfig.put("username", username);
+        sqlClientConfig.put("password", password);
+        sqlClientConfig.put("database", database);
+        SessionManager sessionManager = new SessionManager(PostgreSQLClient.createShared(vertx, sqlClientConfig));
         sessionManager.init();
         return sessionManager;
     }
-    
-    private final AsyncSQLClient mySQLClient;
 
-    private SessionManager(AsyncSQLClient mySQLClient) {
-        this.mySQLClient = mySQLClient;
+    private final AsyncSQLClient sqlClient;
+
+    private SessionManager(AsyncSQLClient sqlClient) {
+        this.sqlClient = sqlClient;
     }
 
-    public void putSession(String sessionID, String googlePlayerID) {
-        this.mySQLClient.getConnection(res -> {
+    void putSession(String sessionID, String googlePlayerID) {
+        this.sqlClient.getConnection(res -> {
             if (res.succeeded()) {
                 SQLConnection connection = res.result();
                 connection.queryWithParams(INSERT_SESSION_QUERY, new JsonArray().add(sessionID).add(googlePlayerID), results -> {
@@ -63,15 +64,34 @@ public class SessionManager {
     }
 
     private void init() {
-        this.mySQLClient.getConnection(res -> {
+        this.sqlClient.getConnection(res -> {
             if (res.succeeded()) {
                 SQLConnection connection = res.result();
                 connection.execute(CREATESESSION_TABLE_QUERY, results -> {
-
-                        });
+                    //Nothing to do
+                });
             } else {
                 Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, "Error : Enable to connect to the database {0}", res.cause());
             }
         });
+    }
+
+    List<String> getSession(String playerId) {
+        final ArrayList<String> sessions = new ArrayList<>();
+        this.sqlClient.getConnection(res -> {
+            if (res.succeeded()) {
+                SQLConnection connection = res.result();
+                
+                connection.queryWithParams(INSERT_SESSION_QUERY, new JsonArray().add(playerId), results -> {
+                    ResultSet resSet = results.result();
+                    List<JsonArray> rows = resSet.getResults();
+                    
+                    rows.get(0).getJsonArray(1).forEach(session -> sessions.add((String)session));
+                });
+            } else {
+                Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, "Error : Enable to connect to the database {0}", res.cause());
+            }
+        });
+        return sessions;
     }
 }

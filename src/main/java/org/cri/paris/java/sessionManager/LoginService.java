@@ -5,8 +5,8 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 
 /**
- * Skeleton de webService
- * @author Besnard Arthur
+ * login service for Redmetrics
+ * @author TTAK arthur.besnard@cri-paris.org
  */
 public class LoginService extends AbstractVerticle {
     
@@ -37,5 +37,6 @@ public class LoginService extends AbstractVerticle {
     
     private void getSessions(RoutingContext rc){
         String tokenID = rc.request().getParam("tokenid");
+        sessionManager.getSession(tokenID);
     }
 }
