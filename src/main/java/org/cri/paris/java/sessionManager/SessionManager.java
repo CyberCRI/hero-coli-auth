@@ -21,7 +21,7 @@ public class SessionManager {
     private static final String INSERT_SESSION_QUERY = "UPDATE player SET sessions = array_cat(sessions, '{?}') WHERE pid = ?";
     private static final String CREATESESSION_TABLE_QUERY = "CREATE TABLE IF NOT EXISTS player ("
             + "pid varchar(32) NOT NULL PRIMARY KEY"
-            + "sessions varchar[],"
+            + "sessions uuid[],"
             + ");";
     private static final String GET_SESSION_TABLE_QUERY = "SELECT sessions FROM player where pid = ?";
 
@@ -93,5 +93,9 @@ public class SessionManager {
             }
         });
         return sessions;
+    }
+    
+    void close(){
+        this.sqlClient.close();
     }
 }

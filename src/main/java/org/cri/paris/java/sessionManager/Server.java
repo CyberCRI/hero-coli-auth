@@ -14,8 +14,15 @@ public class Server {
      * @param args : command line arguments
      */
     public static void main(String[] args) {
+        //TODO use config management
+        final String HOST = "localhost";
+        final String PORT = "5000";
+        final String MAX_POOL_SIZE = "256";
+        final String USERNAME = "manager";
+        final String PASSWORD = "slkdfj315746";
+        final String DATABASE = "sessions";
         Vertx vertx = Vertx.vertx();
-        LoginService service = new LoginService();
+        LoginService service = new LoginService(SessionManager.getSessionManager(vertx, HOST, PORT, MAX_POOL_SIZE, USERNAME, PASSWORD, DATABASE));
         vertx.deployVerticle(service);
     }
 }
