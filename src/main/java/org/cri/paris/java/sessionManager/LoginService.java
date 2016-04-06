@@ -11,7 +11,7 @@ import java.util.List;
  */
 public class LoginService extends AbstractVerticle {
     
-    private SessionManager sessionManager;
+    private final SessionManager sessionManager;
 
     public LoginService(SessionManager sessionManager) {
         this.sessionManager = sessionManager;
@@ -24,7 +24,7 @@ public class LoginService extends AbstractVerticle {
         router.post("/session/:tokenid/:sessionid/").handler(this::postNewSession);
         router.get("/session/:tokenid/").handler(this::getSessions);
 
-        vertx.createHttpServer().requestHandler(router::accept).listen(8080);
+        vertx.createHttpServer().requestHandler(router::accept).listen(54321);
     }
     
     private void postNewSession(RoutingContext rc){

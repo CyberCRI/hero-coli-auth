@@ -19,16 +19,13 @@ import java.util.logging.Logger;
 public class SessionManager {
 
     private static final String INSERT_SESSION_QUERY = "UPDATE player SET sessions = array_cat(sessions, '{?}') WHERE pid = ?";
-    private static final String CREATESESSION_TABLE_QUERY = "CREATE TABLE IF NOT EXISTS player ("
-            + "pid varchar(32) NOT NULL PRIMARY KEY"
-            + "sessions uuid[],"
-            + ");";
+    private static final String CREATESESSION_TABLE_QUERY = "CREATE TABLE IF NOT EXISTS player (pid varchar(32) NOT NULL PRIMARY KEY, sessions uuid[]);";
     private static final String GET_SESSION_TABLE_QUERY = "SELECT sessions FROM player where pid = ?";
 
     static SessionManager getSessionManager(Vertx vertx,
             String host,
-            String port,
-            String maxPoolSize,
+            int port,
+            int maxPoolSize,
             String username,
             String password,
             String database) {
@@ -55,10 +52,14 @@ public class SessionManager {
             if (res.succeeded()) {
                 SQLConnection connection = res.result();
                 connection.queryWithParams(INSERT_SESSION_QUERY, new JsonArray().add(sessionID).add(googlePlayerID), results -> {
-                    //Nothing to do
+                    if(results.succeeded()){
+                        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "Log : {0}", results.result().toJson());
+                    }else{
+                        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "Log : {0}", results.result().toJson());
+                    }
                 });
             } else {
-                Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, "Error : Enable to connect to the database {0}", res.cause());
+                throw new RuntimeException("Error : Enable to connect to the database");
             }
         });
     }
@@ -67,11 +68,11 @@ public class SessionManager {
         this.sqlClient.getConnection(res -> {
             if (res.succeeded()) {
                 SQLConnection connection = res.result();
-                connection.execute(CREATESESSION_TABLE_QUERY, results -> {
-                    //Nothing to do
+                connection.query(CREATESESSION_TABLE_QUERY, results -> {
+                    Logger.getLogger(this.getClass().getName()).log(Level.INFO, "Log : {0}", results.result().toJson());
                 });
             } else {
-                Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, "Error : Enable to connect to the database {0}", res.cause());
+                throw new RuntimeException("Error : Enable to connect to the database");
             }
         });
     }
@@ -82,7 +83,7 @@ public class SessionManager {
             if (res.succeeded()) {
                 SQLConnection connection = res.result();
                 
-                connection.queryWithParams(INSERT_SESSION_QUERY, new JsonArray().add(playerId), results -> {
+                connection.queryWithParams(GET_SESSION_TABLE_QUERY, new JsonArray().add(playerId), results -> {
                     ResultSet resSet = results.result();
                     List<JsonArray> rows = resSet.getResults();
                     
