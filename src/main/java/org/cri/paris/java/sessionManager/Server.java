@@ -22,7 +22,7 @@ public class Server {
         final String PASSWORD = "slkdfj315746";
         final String DATABASE = "player";
         Vertx vertx = Vertx.vertx();
-        LoginService service = new LoginService(SessionManager.getSessionManager(vertx, HOST, PORT, MAX_POOL_SIZE, USERNAME, PASSWORD, DATABASE));
+        SessionControler service = new SessionControler(SessionModel.getSessionManager(vertx, HOST, PORT, MAX_POOL_SIZE, USERNAME, PASSWORD, DATABASE));
         vertx.deployVerticle(service);
     }
 }

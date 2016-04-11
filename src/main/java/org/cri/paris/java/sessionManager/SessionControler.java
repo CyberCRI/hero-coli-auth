@@ -9,11 +9,11 @@ import java.util.List;
  * login service for Redmetrics
  * @author TTAK arthur.besnard@cri-paris.org
  */
-public class LoginService extends AbstractVerticle {
+public class SessionControler extends AbstractVerticle {
     
-    private final SessionManager sessionManager;
+    private final SessionModel sessionManager;
 
-    public LoginService(SessionManager sessionManager) {
+    public SessionControler(SessionModel sessionManager) {
         this.sessionManager = sessionManager;
     }
     
