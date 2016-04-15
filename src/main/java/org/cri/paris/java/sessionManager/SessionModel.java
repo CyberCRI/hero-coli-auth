@@ -20,8 +20,8 @@ import java.util.logging.Logger;
 public class SessionModel {
 
     private static final String UPDATE_SESSION_QUERY = "UPDATE player SET sessions = array_cat(sessions, '{?}') WHERE pid = ?;";
-    private static final String INSERT_SESSION_QUERY = "INSERT INTO player VALUES ('?', '[?]', ...);";
-    private static final String CREATESESSION_TABLE_QUERY = "CREATE TABLE IF NOT EXISTS player (pid varchar(32) NOT NULL PRIMARY KEY, sessions uuid[]);";
+    private static final String INSERT_SESSION_QUERY = "INSERT INTO player VALUES ('?', '{?}');";
+    private static final String CREATESESSION_TABLE_QUERY = "CREATE TABLE IF NOT EXISTS player (pid varchar(32) NOT NULL PRIMARY KEY, sessions varchar(40)[]);";
     private static final String GET_SESSION_TABLE_QUERY = "SELECT sessions FROM player where pid = ?;";
 
     static SessionModel getSessionManager(Vertx vertx,
@@ -57,8 +57,9 @@ public class SessionModel {
                 connection.queryWithParams(GET_SESSION_TABLE_QUERY, new JsonArray().add(googlePlayerID), results -> {
                     if (results.succeeded()) {
                         if (results.result().getNumRows() < 1) {
+                            Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "Inserting new player : {0}, {1}", new Object[]{googlePlayerID, sessionID});
                             connection.queryWithParams(INSERT_SESSION_QUERY,
-                                    new JsonArray().add(new JsonArray(sessionID)).add(googlePlayerID),
+                                    new JsonArray().add(sessionID).add(googlePlayerID),
                                     this::logQueryHandler);
                         } else {
                             connection.queryWithParams(UPDATE_SESSION_QUERY,
@@ -66,7 +67,7 @@ public class SessionModel {
                                     this::logQueryHandler);
                         }
                     } else {
-                        Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "Connexion failed : {0}", results.result().toJson());
+                        Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "Connexion failed : {0}", new Object[]{results.result().toJson()});
                     }
                 });
             } else {
@@ -96,7 +97,9 @@ public class SessionModel {
                     ResultSet resSet = results.result();
                     List<JsonArray> rows = resSet.getResults();
 
-                    rows.get(0).getJsonArray(1).forEach(session -> sessions.add((String) session));
+                    rows.stream().map(row -> row.getJsonArray(1)).forEach(sessionss -> sessionss.forEach(session -> {
+                        sessions.add((String) session);
+                    }));
                 });
             } else {
                 Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, "Error : Enable to connect to the database {0}", res.cause());

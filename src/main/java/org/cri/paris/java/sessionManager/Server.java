@@ -21,8 +21,17 @@ public class Server {
         final String USERNAME = "manager";
         final String PASSWORD = "slkdfj315746";
         final String DATABASE = "player";
+        final String CLIENT_ID = "118231460924-7cmfpiefralb5ij4uv7kv6okcolhrc3k.apps.googleusercontent.com";
         Vertx vertx = Vertx.vertx();
-        SessionControler service = new SessionControler(SessionModel.getSessionManager(vertx, HOST, PORT, MAX_POOL_SIZE, USERNAME, PASSWORD, DATABASE));
+        SessionControler service = 
+                new SessionControler(SessionModel.getSessionManager(vertx, 
+                    HOST, 
+                    PORT, 
+                    MAX_POOL_SIZE, 
+                    USERNAME, 
+                    PASSWORD, 
+                    DATABASE), 
+                new IdentityManager(CLIENT_ID));
         vertx.deployVerticle(service);
     }
 }
