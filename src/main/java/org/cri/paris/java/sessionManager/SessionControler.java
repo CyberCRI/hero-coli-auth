@@ -7,7 +7,6 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -17,11 +16,11 @@ import java.util.logging.Logger;
  */
 public class SessionControler extends AbstractVerticle {
     
-    private final SessionModel sessionManager;
+    private final SessionModel sessionModel;
     private final IdentityManager identityManager;
 
-    public SessionControler(SessionModel sessionManager, IdentityManager identityManager) {
-        this.sessionManager = sessionManager;
+    public SessionControler(SessionModel sessionModel, IdentityManager identityManager) {
+        this.sessionModel = sessionModel;
         this.identityManager = identityManager;
     }
     
@@ -41,7 +40,9 @@ public class SessionControler extends AbstractVerticle {
             String sessionID = rc.request().getParam("sessionid");
             String googleID = identityManager.validateToken(tokenID);
             if(googleID != null){
-                sessionManager.putSession(sessionID, googleID);
+                sessionModel.putSession(sessionID, googleID);
+                rc.response().putHeader("content-type", "application/json")
+                        .end(new JsonObject().put("result", "OK").encodePrettily());
             }
             
         } catch (GeneralSecurityException | IOException ex) {
@@ -51,9 +52,11 @@ public class SessionControler extends AbstractVerticle {
     
     private void getSessions(RoutingContext rc){
         String tokenID = rc.request().getParam("tokenid");
-        List<String> sessionIdList = sessionManager.getSession(tokenID);
-        rc.response()
+        sessionModel.getSession(tokenID, sessions -> {
+            rc.response()
                 .putHeader("content-type", "application/json")
-                .end(new JsonObject().put("sessions", new JsonArray(sessionIdList)).encode());
+                .end(new JsonObject().put("sessions", new JsonArray(sessions)).encodePrettily());
+        });
+        
     }
 }

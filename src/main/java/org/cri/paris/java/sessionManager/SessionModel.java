@@ -10,6 +10,9 @@ import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.sql.SQLConnection;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -19,10 +22,15 @@ import java.util.logging.Logger;
  */
 public class SessionModel {
 
-    private static final String UPDATE_SESSION_QUERY = "UPDATE player SET sessions = array_cat(sessions, '{?}') WHERE pid = ?;";
+    /*private static final String UPDATE_SESSION_QUERY = "UPDATE player SET sessions = array_cat(sessions, '{?}') WHERE pid = ?;";
     private static final String INSERT_SESSION_QUERY = "INSERT INTO player VALUES ('?', '{?}');";
     private static final String CREATESESSION_TABLE_QUERY = "CREATE TABLE IF NOT EXISTS player (pid varchar(32) NOT NULL PRIMARY KEY, sessions varchar(40)[]);";
-    private static final String GET_SESSION_TABLE_QUERY = "SELECT sessions FROM player where pid = ?;";
+    private static final String GET_SESSION_TABLE_QUERY = "SELECT sessions FROM player where pid = ?;";*/
+    
+    private static final String INSERT_SESSION_QUERY = "INSERT INTO session VALUES (?, ?);";
+    private static final String CREATE_INDEX_SESSION_TABLE_QUERY = "CREATE INDEX pid_idx ON session (pid);";
+    private static final String CREATE_SESSION_TABLE_QUERY = "CREATE TABLE IF NOT EXISTS session (id varchar(40) NOT NULL PRIMARY KEY, pid varchar(40));";
+    private static final String GET_SESSION_TABLE_QUERY = "SELECT id FROM session where pid = ?;";
 
     static SessionModel getSessionManager(Vertx vertx,
             String host,
@@ -53,23 +61,7 @@ public class SessionModel {
         this.sqlClient.getConnection(res -> {
             if (res.succeeded()) {
                 SQLConnection connection = res.result();
-
-                connection.queryWithParams(GET_SESSION_TABLE_QUERY, new JsonArray().add(googlePlayerID), results -> {
-                    if (results.succeeded()) {
-                        if (results.result().getNumRows() < 1) {
-                            Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "Inserting new player : {0}, {1}", new Object[]{googlePlayerID, sessionID});
-                            connection.queryWithParams(INSERT_SESSION_QUERY,
-                                    new JsonArray().add(sessionID).add(googlePlayerID),
-                                    this::logQueryHandler);
-                        } else {
-                            connection.queryWithParams(UPDATE_SESSION_QUERY,
-                                    new JsonArray().add(sessionID).add(googlePlayerID),
-                                    this::logQueryHandler);
-                        }
-                    } else {
-                        Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "Connexion failed : {0}", new Object[]{results.result().toJson()});
-                    }
-                });
+                connection.queryWithParams(INSERT_SESSION_QUERY, new JsonArray().add(sessionID).add(googlePlayerID), this::logQueryHandler);
             } else {
                 throw new RuntimeException("Error : Enable to connect to the database");
             }
@@ -80,32 +72,33 @@ public class SessionModel {
         this.sqlClient.getConnection(res -> {
             if (res.succeeded()) {
                 SQLConnection connection = res.result();
-                connection.query(CREATESESSION_TABLE_QUERY, this::logQueryHandler);
+                connection.query(CREATE_SESSION_TABLE_QUERY, result->{
+                    connection.query(CREATE_INDEX_SESSION_TABLE_QUERY, this::logQueryHandler);
+                });
             } else {
                 throw new RuntimeException("Error : Enable to connect to the database");
             }
         });
     }
 
-    List<String> getSession(String playerId) {
-        final ArrayList<String> sessions = new ArrayList<>();
+    void getSession(String playerId, Consumer<List<String>> callback){
         this.sqlClient.getConnection(res -> {
             if (res.succeeded()) {
                 SQLConnection connection = res.result();
 
                 connection.queryWithParams(GET_SESSION_TABLE_QUERY, new JsonArray().add(playerId), results -> {
-                    ResultSet resSet = results.result();
-                    List<JsonArray> rows = resSet.getResults();
-
-                    rows.stream().map(row -> row.getJsonArray(1)).forEach(sessionss -> sessionss.forEach(session -> {
-                        sessions.add((String) session);
-                    }));
+                    if(results.succeeded()){
+                        ResultSet resSet = results.result();
+                        List<JsonArray> rows = resSet.getResults();
+                        ArrayList<String> sessions = new ArrayList<>();
+                        rows.forEach(row -> sessions.add(row.getString(0)));
+                        callback.accept(sessions);
+                    }
                 });
             } else {
-                Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, "Error : Enable to connect to the database {0}", res.cause());
+                Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, "Error : Enable to connect to the database ", res.cause());
             }
         });
-        return sessions;
     }
 
     void close() {
@@ -114,9 +107,9 @@ public class SessionModel {
 
     private void logQueryHandler(AsyncResult<ResultSet> result) {
         if (result.succeeded()) {
-            Logger.getLogger(this.getClass().getName()).log(Level.INFO, "Info : {0}", result.result().toJson());
+            Logger.getLogger(this.getClass().getName()).log(Level.INFO, "Info : ", result.result().toJson());
         } else {
-            Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "Error : Query failed because of : {0}", result.cause());
+            Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "Error : Query failed because of : ", result.cause());
         }
     }
 }
