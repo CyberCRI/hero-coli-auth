@@ -8,6 +8,8 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -31,6 +33,7 @@ public class IdentityManager {
                 .setIssuer("https://accounts.google.com")
                 .build();
         // (Receive idTokenString by HTTPS POST)
+        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "Token : " + token);
         GoogleIdToken idToken = verifier.verify(token);
         if (idToken != null) {
             
