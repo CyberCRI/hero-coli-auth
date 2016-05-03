@@ -28,8 +28,8 @@ public class SessionControler extends AbstractVerticle {
     public void start() {
         Router router = Router.router(vertx);
 
-        router.post("/session/:tokenid/:sessionid/").handler(this::postNewSession);
-        router.get("/session/:tokenid/").handler(this::getSessions);
+        router.get("/session/:tokenid/:sessionid/").handler(this::postNewSession);
+        //router.get("/session/:tokenid/").handler(this::getSessions);
 
         vertx.createHttpServer().requestHandler(router::accept).listen(54321);
     }
