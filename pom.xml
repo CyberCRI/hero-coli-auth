@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.cri.paris.java.sessionManager</groupId>
     <artifactId>Server</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>0.95</version>
     <packaging>jar</packaging>
     <dependencies>
         <dependency>
@@ -34,7 +34,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>Server</mainClass>
+                            <mainClass>org.cri.paris.java.sessionManager.Server</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>
