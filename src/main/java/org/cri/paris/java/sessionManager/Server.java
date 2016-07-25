@@ -18,7 +18,7 @@ public class Server {
 
     /**
      * Main used to launch the VertX server
-     * @param args : command line arguments
+     * @param args : none expected, ignored
      */
     public static void main(String[] args) {
         
